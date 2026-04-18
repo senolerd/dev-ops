@@ -1,0 +1,39 @@
+#### describe-addon-versions example list all the available addons for specified Kubernetes version supported for EKS.
+# aws eks describe-addon-versions  \
+#     --kubernetes-version=1.35 \
+#     --query 'sort_by(addons  &owner)[].{publisher: publisher, owner: owner, addonName: addonName, type: type}' \
+#     --output table
+
+
+# Get version lists of an addon (eg: vpc-cni)
+# aws eks describe-addon-versions \
+#     --kubernetes-version=1.35 \
+#     --addon-name=vpc-cni \
+#     --query='addons[].addonVersions[].addonVersion'
+
+
+
+# resolve_conflicts_on_update with PRESERVE can be used to retain the config changes applied to the add-on with kubectl while upgrading to a newer version of the add-on.
+
+resource "aws_eks_addon" "addon-coredns" {
+  cluster_name                = aws_eks_cluster.EKS.name
+  addon_name                  = "coredns"
+  addon_version               = "v1.13.2-eksbuild.4" # latest version at 04/16/26
+  resolve_conflicts_on_update = "PRESERVE"
+}
+
+
+resource "aws_eks_addon" "addon-vpc-cni" {
+  cluster_name                = aws_eks_cluster.EKS.name
+  addon_name                  = "coredns"
+  addon_version               = "v1.21.1-eksbuild.7" # latest version at 04/16/26
+  resolve_conflicts_on_update = "PRESERVE"
+}
+
+
+resource "aws_eks_addon" "addon-vpc-cni" {
+  cluster_name                = aws_eks_cluster.EKS.name
+  addon_name                  = "coredns"
+  addon_version               = "v1.10.1-eksbuild.1" # latest version at 04/16/26
+  resolve_conflicts_on_update = "PRESERVE"
+}

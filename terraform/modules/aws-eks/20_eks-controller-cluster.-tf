@@ -1,0 +1,121 @@
+
+
+####################################################### 
+################## EKS CONTROLLER ##################### 
+####################################################### 
+
+resource "aws_eks_cluster" "EKS" {
+  name = "${var.VPC_NAME}"
+
+  access_config {
+    authentication_mode = "API_AND_CONFIG_MAP"
+  }
+
+  upgrade_policy {
+    support_type = "STANDARD"
+  }
+  role_arn = aws_iam_role.EKS-controller-role.arn
+  version  = data.aws_eks_cluster_versions.example.cluster_versions[0].cluster_version
+
+  vpc_config {
+    endpoint_private_access = true
+    endpoint_public_access  = true
+
+    subnet_ids = [
+      aws_subnet.subnet_for_eks_private_1.id,
+      aws_subnet.subnet_for_eks_private_2.id,
+      aws_subnet.subnet_for_eks_public_1.id,
+      aws_subnet.subnet_for_eks_public_2.id
+    ]
+  }
+
+  # EKS creation and destroying phases need this role.
+  depends_on = [
+    aws_iam_role_policy_attachment.cluster_AmazonEKSClusterPolicy,
+  ]
+}
+
+resource "aws_iam_role" "EKS-controller-role" {
+  name = "${var.VPC_NAME}-eks-cluster"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "sts:AssumeRole",
+          "sts:TagSession"
+        ]
+        Effect = "Allow"
+        Principal = {
+          Service = "eks.amazonaws.com"
+        }
+      },
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "cluster_AmazonEKSClusterPolicy" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+  role       = aws_iam_role.EKS-controller-role.name
+}
+
+# The user which is being used to create the cluster
+data "aws_caller_identity" "this-user" {}
+
+resource "aws_eks_access_entry" "access-entry-for-this-user" {
+  cluster_name      = aws_eks_cluster.EKS.name
+  principal_arn     = data.aws_caller_identity.this-user.arn
+  # kubernetes_groups = ["group-1", "group-2"]
+  type              = "STANDARD"
+}
+
+resource "aws_eks_access_policy_association" "admin_policy-for-this-user" {
+  cluster_name  = aws_eks_cluster.EKS.name
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+  principal_arn = data.aws_caller_identity.this-user.arn
+
+  access_scope {
+    type = "cluster" # Cluster-wide admin access
+    # Namespaces can be added here
+    # namespaces = 
+  }
+}
+# /EKS CONTROLLER
+
+
+
+####################################################### 
+################## EKS WORKERS ######################## 
+####################################################### 
+
+# /EKS WORKERS
+
+
+
+
+data "aws_eks_cluster_versions" "example" {
+  default_only = true
+}
+
+output "VPC" {
+  value = aws_vpc.vpc_for_eks
+}
+
+output "WHOAMI" {
+  value = data.aws_caller_identity.this-user
+}
+
+
+
+
+
+
+# EKSNodeRoleForBootcamp
+
+
+# Amazon VPC CNI Info
+# kube-proxy 
+# CoreDNS 
+
+
+# arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy
